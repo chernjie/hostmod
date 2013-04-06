@@ -3,7 +3,6 @@ hostmod
 
 Host Manager command line
 
-
 Usage
 =====
 
@@ -25,3 +24,8 @@ OR
 curl -sk https://raw.github.com/chernjie/hostmod/master/hostmod > ~/bin/hostmod
 chmod +x ~/bin/hostmod
 ```
+
+Alternatives
+============
+* https://github.com/macmade/host-manager
+* https://gist.github.com/nddrylliog/1368532
