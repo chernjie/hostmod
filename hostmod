@@ -1,24 +1,54 @@
 #!/bin/bash
-# TODO: remove entry
-# TODO: disable IP
+# TODO: remove write to temp file
 
 IP="127.0.0.1"
 HOST_FILE=$(ls ~/bin/etc/hosts)
 TMP_FILE="/var/tmp/hosts"
 
-function error()
-{
-	if [ $# -gt 0 ]
-	then
-		echo -e "Error: $@"
-		echo
-	fi
+[ $(uname) = "Linux" ] && sedRegExp="-r" || sedRegExp="-E"
 
-	echo "Usage: ${0##/*/} add [127.0.0.1] hostname"
-	echo "Usage: ${0##/*/} <pattern>"
-	echo "Usage: ${0##/*/} [edit|-e]"
+function _error()
+{
+	[ $# -eq 0 ] && _usage && exit 0
+	echo -e "\nError: $@"
+	_usage
+	exit 1
+}
+
+function _usage()
+{
 	echo
-	exit
+	echo "Usage: ${0##/*/} <add|--add|-a> hostname [127.0.0.1]"
+	echo "Usage: ${0##/*/} <remove|rm|--remove|-r|-d> hostname"
+	echo "Usage: ${0##/*/} <pattern> # search"
+	echo "Usage: ${0##/*/} <edit|--edit|-e>"
+	echo
+}
+
+# Test an IP address for validity:
+# http://www.linuxjournal.com/content/validating-ip-address-bash-script
+# Usage:
+#      valid_ip IP_ADDRESS
+#      if [[ $? -eq 0 ]]; then echo good; else echo bad; fi
+#   OR
+#      if valid_ip IP_ADDRESS; then echo good; else echo bad; fi
+#
+function valid_ip()
+{
+	[ $# -eq 0 ] && _error Please provide an IP address
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
 }
 
 function diff_save_exit()
@@ -28,45 +58,51 @@ function diff_save_exit()
 	exit
 }
 
-function add()
+function _add()
 {
-	if [ -z "$2" ]
-	then
-		error
-	fi
-	if [ -n "$3" ]
-	then
-		IP="$2"
-		HOSTNAME="$3"
-	else
-		HOSTNAME="$2"
-	fi
-	
-	# check if HOSTNAME exist
-	if [ $(grep -i -E "[[:space:]]$HOSTNAME([[:space:]]|$)" $HOST_FILE -c) -gt 0 ]
-	then
-		error "Hostname exist"\
-		"\n\n"$(grep -i -E "[[:space:]]$HOSTNAME([[:space:]]|$)" $HOST_FILE)
-	fi
-	
-	# IP does not exist, add new entry
+	[ $# -le 1 ] && _error Please provide hostname
+	_hostname="$2"
+	IP="${3:-$IP}"
+	valid_ip $IP || _error Please provide a valid IP address
+
+	# check if hostname exist
+	grep -iEq "[[:space:]]$_hostname([[:space:]]|$)" $HOST_FILE &&
+		$0 $_hostname &&
+		_error "Hostname exist"
+
 	if [ $(grep -c $IP $HOST_FILE) -eq 0 ]
 	then
+		# IP does not exist, add new entry
 		cp $HOST_FILE $TMP_FILE
-		echo "$IP $HOSTNAME" >> $TMP_FILE
-		diff_save_exit
+		echo "$IP	$_hostname" >> $TMP_FILE
+	else
+		# IP exist to append new entry
+		sed $sedRegExp "s#($IP[[:space:]].*\$)#\1	$_hostname#" $HOST_FILE > $TMP_FILE
 	fi
-	
-	# IP exist to append new entry
-	_line=$(grep $IP $HOST_FILE --color=never)
-	
-	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $TMP_FILE
+
+	diff_save_exit
+}
+
+function _remove()
+{
+	[ $# -le 1 ] && _error Please provide hostname
+	_hostname="$2"
+	_match="[[:space:]]$_hostname([[:space:]]|$)"
+
+	if [ $(grep -iE $_match $HOST_FILE | tr "[[:space:]]" "\n" | wc -l) -le 2 ]
+	then
+		sed $sedRegExp "/$_match/d" $HOST_FILE > $TMP_FILE
+	else
+		sed $sedRegExp "s#$_match#\1#" $HOST_FILE > $TMP_FILE
+	fi
+
 	diff_save_exit
 }
 
 case $1 in
-	''|?|-h|help) error;;
-	edit|-e) vim $HOST_FILE; exit;;
-	add) add $@; exit;;
-	*) grep -E "$1" $HOST_FILE; echo; error;;
+	''|?|-h|help) _error;;
+	edit|--edit|-e) vim $HOST_FILE;;
+	add|--add|-a) _add $@;;
+	remove|rm|--remove|-r|-d) _remove $@;;
+	*) grep -E "$1" $HOST_FILE;;
 esac
