@@ -15,7 +15,7 @@ function error()
 	fi
 
 	echo "Usage: $0 add [127.0.0.1] hostname"
-	echo "Usage: $0 find <pattern>"
+	echo "Usage: $0 <pattern>"
 	echo "Usage: $0 [edit|-e]"
 	echo
 	exit
@@ -28,19 +28,12 @@ function diff_save_exit()
 	exit
 }
 
-if [ $# -lt 1 ]
-then
-	error
-fi
-
-if [ "$1" = "edit" ] || [ "$1" = "-e" ]
-then
-	vim $HOST_FILE
-	exit
-fi
-
-if [ "$1" = "add" ] && [ -n "$2" ]
-then
+function add()
+{
+	if [ -z "$2" ]
+	then
+		error
+	fi
 	if [ -n "$3" ]
 	then
 		IP="$2"
@@ -59,7 +52,7 @@ then
 	# IP does not exist, add new entry
 	if [ $(grep -c $IP $HOST_FILE) -eq 0 ]
 	then
-		cp $HOST_FILE TMP_FILE
+		cp $HOST_FILE $TMP_FILE
 		echo "$IP $HOSTNAME" >> $TMP_FILE
 		diff_save_exit
 	fi
@@ -69,11 +62,11 @@ then
 	
 	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $TMP_FILE
 	diff_save_exit
-fi
+}
 
-if [ "$1" = "find" ] && [ -n "$2" ]
-then
-	grep $2 $HOST_FILE
-fi
-
-error
+case $1 in
+	''|?|-h|help) error;;
+	edit|-e) vim $HOST_FILE; exit;;
+	add) add $@; exit;;
+	*) grep -E "$1" $HOST_FILE; echo; error;;
+esac
