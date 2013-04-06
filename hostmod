@@ -23,10 +23,8 @@ function error()
 
 function diff_save_exit()
 {
-	# $1 HOST_FILE
-	# $2 TMP_FILE
-	git diff --no-index $1 $2
-	mv $2 $1
+	git diff --no-index $HOST_FILE $TMP_FILE
+	mv $TMP_FILE $HOST_FILE
 	exit
 }
 
@@ -63,14 +61,14 @@ then
 	then
 		cp $HOST_FILE TMP_FILE
 		echo "$IP $HOSTNAME" >> $TMP_FILE
-		diff_save_exit $HOST_FILE $TMP_FILE
+		diff_save_exit
 	fi
 	
 	# IP exist to append new entry
 	_line=$(grep $IP $HOST_FILE --color=never)
 	
 	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $TMP_FILE
-	diff_save_exit $HOST_FILE $TMP_FILE
+	diff_save_exit
 fi
 
 if [ "$1" = "find" ] && [ -n "$2" ]
