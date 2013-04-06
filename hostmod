@@ -14,9 +14,9 @@ function error()
 		echo
 	fi
 
-	echo "Usage: $0 add [127.0.0.1] hostname"
-	echo "Usage: $0 <pattern>"
-	echo "Usage: $0 [edit|-e]"
+	echo "Usage: ${0##/*/} add [127.0.0.1] hostname"
+	echo "Usage: ${0##/*/} <pattern>"
+	echo "Usage: ${0##/*/} [edit|-e]"
 	echo
 	exit
 }
