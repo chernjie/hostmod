@@ -1,0 +1,66 @@
+#!/bin/bash
+# TODO: remove entry
+# TODO: disable IP
+
+IP="127.0.0.1"
+HOST_FILE=$(ls ~/bin/etc/hosts)
+
+function error()
+{
+	if [ $# -gt 0 ]
+	then
+		echo -e "Error: $@"
+		echo
+	fi
+
+	echo "Usage: $0 add [127.0.0.1] hostname"
+	echo
+	exit
+}
+
+function diff_save_exit()
+{
+	# $1 HOST_FILE
+	git diff --no-index $1 $1.tmp
+	mv $1.tmp $1
+	exit
+}
+
+if [ $# -lt 1 ]
+then
+	error
+fi
+
+if [ "$1" = "add" ] && [ -n "$2" ]
+then
+	if [ -n "$3" ]
+	then
+		IP="$2"
+		HOSTNAME="$3"
+	else
+		HOSTNAME="$2"
+	fi
+	
+	# check if HOSTNAME exist
+	if [ $(grep -i -E "[[:space:]]$HOSTNAME([[:space:]]|$)" $HOST_FILE -c) -gt 0 ]
+	then
+		error "Hostname exist"\
+		"\n\n"$(grep -i -E "[[:space:]]$HOSTNAME([[:space:]]|$)" $HOST_FILE)
+	fi
+	
+	# IP does not exist, add new entry
+	if [ $(grep -c $IP $HOST_FILE) -eq 0 ]
+	then
+		cp $HOST_FILE $HOST_FILE.tmp
+		echo "$IP $HOSTNAME" >> $HOST_FILE.tmp
+		diff_save_exit $HOST_FILE
+	fi
+	
+	# IP exist to append new entry
+	_line=$(grep $IP $HOST_FILE --color=never)
+	
+	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $HOST_FILE.tmp
+	diff_save_exit $HOST_FILE
+fi
+
+error
