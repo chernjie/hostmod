@@ -4,6 +4,7 @@
 
 IP="127.0.0.1"
 HOST_FILE=$(ls ~/bin/etc/hosts)
+TMP_FILE="/var/tmp/hosts"
 
 function error()
 {
@@ -14,6 +15,8 @@ function error()
 	fi
 
 	echo "Usage: $0 add [127.0.0.1] hostname"
+	echo "Usage: $0 find <pattern>"
+	echo "Usage: $0 [edit|-e]"
 	echo
 	exit
 }
@@ -21,14 +24,21 @@ function error()
 function diff_save_exit()
 {
 	# $1 HOST_FILE
-	git diff --no-index $1 $1.tmp
-	mv $1.tmp $1
+	# $2 TMP_FILE
+	git diff --no-index $1 $2
+	mv $2 $1
 	exit
 }
 
 if [ $# -lt 1 ]
 then
 	error
+fi
+
+if [ "$1" = "edit" ] || [ "$1" = "-e" ]
+then
+	vim $HOST_FILE
+	exit
 fi
 
 if [ "$1" = "add" ] && [ -n "$2" ]
@@ -51,16 +61,21 @@ then
 	# IP does not exist, add new entry
 	if [ $(grep -c $IP $HOST_FILE) -eq 0 ]
 	then
-		cp $HOST_FILE $HOST_FILE.tmp
-		echo "$IP $HOSTNAME" >> $HOST_FILE.tmp
-		diff_save_exit $HOST_FILE
+		cp $HOST_FILE TMP_FILE
+		echo "$IP $HOSTNAME" >> $TMP_FILE
+		diff_save_exit $HOST_FILE $TMP_FILE
 	fi
 	
 	# IP exist to append new entry
 	_line=$(grep $IP $HOST_FILE --color=never)
 	
-	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $HOST_FILE.tmp
-	diff_save_exit $HOST_FILE
+	sed "s#$_line#$_line	$HOSTNAME#" $HOST_FILE > $TMP_FILE
+	diff_save_exit $HOST_FILE $TMP_FILE
+fi
+
+if [ "$1" = "find" ] && [ -n "$2" ]
+then
+	grep $2 $HOST_FILE
 fi
 
 error
