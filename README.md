@@ -29,3 +29,4 @@ Alternatives
 ============
 * https://github.com/macmade/host-manager
 * https://gist.github.com/nddrylliog/1368532
+* http://git.r-36.net/hosts-gen
