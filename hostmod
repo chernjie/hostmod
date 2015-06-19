@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # TODO: remove write to temp file
 
 IP="127.0.0.1"
-HOST_FILE=$(ls ~/bin/etc/hosts)
+HOST_FILE=$(ls ~/dotfiles/etc/hosts)
 TMP_FILE="/var/tmp/hosts"
 
 [ $(uname) = "Linux" ] && sedRegExp="-r" || sedRegExp="-E"
